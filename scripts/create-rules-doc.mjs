@@ -1,0 +1,87 @@
+import {
+  AlignmentType,
+  Document,
+  HeadingLevel,
+  Packer,
+  Paragraph,
+  Table,
+  TableCell,
+  TableRow,
+  TextRun,
+  WidthType,
+} from 'docx'
+import fs from 'node:fs'
+
+const bullet = (text) => new Paragraph({ text, bullet: { level: 0 } })
+const cell = (text, bold = false) => new TableCell({ children: [new Paragraph({ children: [new TextRun({ text, bold })] })] })
+
+const document = new Document({
+  sections: [{
+    properties: {},
+    children: [
+      new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '军队文职选岗系统\n岗位搜索规则说明', bold: true, size: 32 })] }),
+      new Paragraph({ alignment: AlignmentType.CENTER, children: [new TextRun({ text: '供同事测试和核对使用', color: '666666', size: 22 })] }),
+      new Paragraph({ text: '一、系统目标', heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({ text: '系统根据考生填写的信息，从 2026 年军队文职岗位表中筛选出所有符合条件的岗位。系统不做“推荐”“容易”“困难”等主观分级，只展示符合筛选条件的岗位。' }),
+      new Paragraph({ text: '二、考生需要填写的信息', heading: HeadingLevel.HEADING_1 }),
+      bullet('专业名称：只填写完整专业名称，例如“护理学”“计算机科学与技术”“土木工程”。'),
+      bullet('性别：选择男或女。'),
+      bullet('最高学历：默认本科，可选择大专、本科、研究生或博士。'),
+      bullet('应届生身份：选择应届生或社会人才。'),
+      bullet('学生笔试分数：用于在结果中展示，不作为当前硬性筛选条件。'),
+      bullet('目标地区：填写后只展示该地区；不填写则不限制地区。'),
+      bullet('其他岗位限制：没有则不填写；有相关条件时填写。'),
+      new Paragraph({ text: '系统不询问客户姓名，也不把基层工作经验作为筛选条件。', italics: true }),
+      new Paragraph({ text: '三、专业代码搜索规则', heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({ text: '系统不会直接用输入的专业名称做模糊搜索，而是按以下步骤处理：' }),
+      bullet('根据输入的专业名称，到“教育部专科+本科+研究生专业目录汇总”中查找对应专业代码。'),
+      bullet('根据考生学历，优先使用对应学历层级的专业代码。'),
+      bullet('用专业代码到岗位表的“专业”字段中进行匹配。'),
+      bullet('专业名称对应的专业代码匹配，或其所属专业类别代码匹配，任意一个满足即可进入候选结果。'),
+      new Paragraph({ text: '例如：考生输入“护理学”，系统先查找护理学对应的专科、本科、研究生代码，再使用代码匹配岗位表，而不是简单搜索“护理学”三个字。' }),
+      new Paragraph({ text: '四、性别规则', heading: HeadingLevel.HEADING_1 }),
+      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+        new TableRow({ children: [cell('考生选择'), cell('展示岗位')] }),
+        new TableRow({ children: [cell('男'), cell('其他条件明确写“男”的岗位，以及“其他条件”为空的岗位')] }),
+        new TableRow({ children: [cell('女'), cell('其他条件明确写“女”的岗位，以及“其他条件”为空的岗位')] }),
+      ] }),
+      new Paragraph({ text: '“其他条件”为空代表不限性别，男女都可以报考。明确要求另一性别的岗位不展示。' }),
+      new Paragraph({ text: '五、学历规则', heading: HeadingLevel.HEADING_1 }),
+      new Paragraph({ text: '学历判断采用“考生学历能够覆盖岗位要求”的规则：' }),
+      bullet('大专：匹配大专要求的岗位。'),
+      bullet('本科：匹配大专、本科要求的岗位，不匹配研究生要求的岗位。'),
+      bullet('研究生：匹配大专、本科、研究生要求的岗位。'),
+      bullet('博士：匹配大专、本科、研究生、博士要求的岗位。'),
+      new Paragraph({ text: '例如：本科不能报研究生岗位；研究生可以报本科岗位。岗位中的“本科以上”“研究生（硕士以上）”等文字按最低学历要求解析。' }),
+      new Paragraph({ text: '六、应届生身份规则', heading: HeadingLevel.HEADING_1 }),
+      new Table({ width: { size: 100, type: WidthType.PERCENTAGE }, rows: [
+        new TableRow({ children: [cell('考生选择'), cell('岗位表“来源类别”允许值')] }),
+        new TableRow({ children: [cell('应届生'), cell('高校毕业生、高校毕业生或社会人才')] }),
+        new TableRow({ children: [cell('社会人才'), cell('社会人才、高校毕业生或社会人才')] }),
+      ] }),
+      new Paragraph({ text: '七、目标地区规则', heading: HeadingLevel.HEADING_1 }),
+      bullet('填写“云南”：展示工作地点中包含“云南”的岗位，例如云南昆明、云南大理。'),
+      bullet('不填写目标地区：展示所有其他条件符合的地区。'),
+      new Paragraph({ text: '八、其他岗位限制规则', heading: HeadingLevel.HEADING_1 }),
+      bullet('性别要求从“其他条件”中单独识别，不重复作为其他限制处理。'),
+      bullet('岗位没有其他限制：正常展示。'),
+      bullet('岗位有其他限制但考生没有填写：暂不展示。'),
+      bullet('岗位有其他限制且考生填写内容匹配：展示。'),
+      new Paragraph({ text: '待确认事项：其他岗位限制最终采用“按关键词逐项匹配”，还是要求输入完整条件。建议采用关键词逐项匹配，避免因文字表述不同造成误筛。', italics: true }),
+      new Paragraph({ text: '九、结果展示内容', heading: HeadingLevel.HEADING_1 }),
+      bullet('岗位代码、用人单位、岗位名称、从事工作、工作地点。'),
+      bullet('性别要求、学历要求、专业要求、其他条件。'),
+      bullet('学生笔试分数和岗位历史进面分数。'),
+      bullet('展示所有符合条件的岗位，不显示推荐、容易、一般、困难等主观标签。'),
+      new Paragraph({ text: '十、测试重点', heading: HeadingLevel.HEADING_1 }),
+      bullet('输入同一专业，分别测试大专、本科、研究生、博士，确认学历方向正确。'),
+      bullet('男生测试：应包含“男”和其他条件为空的岗位。'),
+      bullet('女生测试：应包含“女”和其他条件为空的岗位。'),
+      bullet('填写地区和不填写地区各测试一次。'),
+      bullet('测试专业名称对应的代码匹配，确认不会因为名称模糊包含而误收岗位。'),
+    ],
+  }],
+})
+
+const output = '军队文职选岗系统-岗位搜索规则说明.docx'
+Packer.toBuffer(document).then((buffer) => fs.writeFileSync(output, buffer))

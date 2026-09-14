@@ -1,0 +1,6 @@
+:root { font-family: 'Avenir Next', 'PingFang SC', 'Microsoft YaHei', sans-serif; color: #20302d; background: #f4f6f2; font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+button, input, select, textarea { font: inherit; }
+button { cursor: pointer; }
+#root { min-height: 100vh; }
