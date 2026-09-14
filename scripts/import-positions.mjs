@@ -39,7 +39,9 @@ function getMajorNames(majorText) {
 
 function getMasterTypes(majorText) {
   if (!majorText.includes('研究生:')) return []
-  const majorEntries = majorText.split(/[,，\n]/).filter(Boolean)
+  // 只取“研究生:”到“本科:”之间的研究生专业段，避免本科专业条目被误判为学术型硕士
+  const graduateSection = majorText.split('研究生:')[1]?.split('本科:')[0] ?? ''
+  const majorEntries = graduateSection.split(/[,，\n]/).filter(Boolean)
   return [...new Set(majorEntries.map((item) => item.includes('（专业学位）') ? '专业型硕士' : '学术型硕士'))]
 }
 
